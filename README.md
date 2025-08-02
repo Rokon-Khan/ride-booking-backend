@@ -16,7 +16,14 @@ A secure, scalable, and role-based backend API for a ride booking system, inspir
 ## Project Overview
 The Ride Booking System is a RESTful API designed to facilitate ride-hailing services with distinct roles: riders, drivers, and admins. It includes JWT-based authentication, role-based authorization, and comprehensive ride management logic. The system ensures secure password hashing, modular architecture, and proper handling of edge cases for a production-ready solution.
 
-**Live API**: [https://ride-booking-sytem.vercel.app/](https://ride-booking-sytem.vercel.app/)
+## **Live API**: [https://ride-booking-sytem.vercel.app/](https://ride-booking-sytem.vercel.app/)
+## Admin Password for admin actions
+```
+{
+  "email": "admin@admin.com",
+  "password": "Pass@135"
+}
+```
 
 ## Features
 - **Authentication & Authorization**:
