@@ -5,25 +5,29 @@ const RideSchema = new Schema({
   rider: { type: Schema.Types.ObjectId, ref: "User", required: true },
   driver: { type: Schema.Types.ObjectId, ref: "Driver" },
   pickup: {
-    lat: Number,
-    lng: Number,
-    address: String,
-    required: true,
+    type: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true },
+      address: { type: String, required: true },
+    },
+    required: true, // Makes the entire pickup object required
   },
   destination: {
-    lat: Number,
-    lng: Number,
-    address: String,
-    required: true,
+    type: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true },
+      address: { type: String, required: true },
+    },
+    required: true, // Makes the entire destination object required
   },
   status: { type: String, required: true },
   timestamps: {
     requested: { type: Date, default: Date.now },
-    accepted: Date,
-    picked_up: Date,
-    in_transit: Date,
-    completed: Date,
-    canceled: Date,
+    accepted: { type: Date },
+    picked_up: { type: Date },
+    in_transit: { type: Date },
+    completed: { type: Date },
+    canceled: { type: Date },
   },
   fare: { type: Number, default: 0 },
 });
