@@ -168,6 +168,103 @@ src/
 ├── server.ts           # Entry point
 ```
 
+## Full API Usage GuideLines
+
+# Ride Booking System API Endpoints
+
+## Authentication & Authorization
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| POST | `/api/auth/register` | Public | Register user (rider/driver). | Requires email, password, role (rider/driver), and profile data. Returns JWT. Role specified in payload. Uses bcrypt for password hashing. |
+| POST | `/api/auth/login` | Public | Login for all roles (admin, rider, driver). | Requires email and password. Returns JWT with userId, role, and status (active/suspended). |
+| POST | `/api/auth/logout` | Authenticated | Blacklist JWT (optional). | Invalidates token if using short-expiry JWT. Returns 200 on success. |
+| GET | `/api/auth/me` | Authenticated | Get current user profile. | Returns role-based data (e.g., driver approval status). 401 if invalid JWT. |
+
+## Rider-Specific Endpoints
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| POST | `/api/rides/request` | Rider | Request a new ride. | Requires pickup and destination (lat/lng or address). Returns ride ID and status. 400 if rider is blocked or has active ride. |
+| PATCH | `/api/rides/:id/cancel` | Rider | Cancel a ride. | Only allowed if not accepted by driver. Returns 403 if already accepted. 404 if ride not found. |
+| GET | `/api/rides/history` | Rider | List all past rides. | Returns paginated list of completed/canceled rides. |
+| GET | `/api/rides/current` | Rider | Get active ride. | Returns current ride details or 404 if none active. |
+| GET | `/api/rides/:id` | Rider | View specific ride details. | Only accessible for rider's own rides. Returns 403 if unauthorized, 404 if not found. |
+
+## Driver-Specific Endpoints
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| GET | `/api/drivers/available-rides` | Driver | List pending ride requests. | Returns nearby unaccepted rides (geo-filter optional). 403 if driver is offline or suspended. |
+| PATCH | `/api/rides/:id/accept` | Driver | Accept a ride request. | Requires driver to be online, approved, and without active ride. Returns 400 if ride already taken. |
+| PATCH | `/api/rides/:id/reject` | Driver | Reject a ride request. | Requires ride to be available. Returns 400 if invalid. |
+| PATCH | `/api/rides/:id/status` | Driver | Update ride status. | Allowed transitions: `picked_up` → `in_transit` → `completed`. Logs timestamps. 403 if not assigned driver. |
+| GET | `/api/rides/current` | Driver | Get currently assigned ride. | Returns active ride or 404 if none. |
+| GET | `/api/rides/history` | Driver | View completed rides. | Returns paginated list of completed rides. |
+| PATCH | `/api/drivers/availability` | Driver | Set online/offline status. | Payload: `{ available: true }`. 403 if driver is suspended. |
+| GET | `/api/drivers/earnings` | Driver | View earnings history. | Returns total and per-ride earnings based on fare logic. |
+
+## Ride Management (Shared & Admin)
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| GET | `/api/rides` | Admin | List all rides. | Supports filters (status, date, user, driver). Returns paginated list. |
+| GET | `/api/rides/:id` | Admin | View any ride by ID. | Returns full ride details. 404 if not found. |
+| PATCH | `/api/rides/:id/status` | Admin | Manually update ride status. | Optional for debugging/support. Logs timestamps. 403 if invalid transition. |
+| DELETE | `/api/rides/:id` | Admin | Delete ride record. | Only allowed for `requested` rides not yet accepted. 403 otherwise. |
+
+## User & Driver Management (Admin-Only)
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| GET | `/api/users` | Admin | List all users. | Returns paginated list with filters (role, status). |
+| GET | `/api/users/:id` | Admin | View user details. | Includes role-specific data (e.g., driver vehicle info). 404 if not found. |
+| PATCH | `/api/users/:id/block` | Admin | Block a user account. | Prevents login and actions. 400 if user not found. |
+| PATCH | `/api/users/:id/unblock` | Admin | Unblock a user account. | Restores access. 400 if user not found. |
+| GET | `/api/drivers` | Admin | List all drivers. | Includes approval status, availability, vehicle info. |
+| PATCH | `/api/drivers/:id/approve` | Admin | Approve a driver. | Enables ride acceptance. 400 if already approved. |
+| PATCH | `/api/drivers/:id/suspend` | Admin | Suspend a driver. | Disables ride acceptance. 400 if already suspended. |
+| PATCH | `/api/drivers/:id/reactivate` | Admin | Reactivate a driver. | Restores driver permissions. 400 if not suspended. |
+
+## Reports & Analytics (Admin-Only)
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| GET | `/api/reports/rides` | Admin | Daily/monthly ride stats. | Returns ride count and revenue data. |
+| GET | `/api/reports/users` | Admin | User stats. | Returns active users and signup trends. |
+| GET | `/api/reports/drivers` | Admin | Driver stats. | Returns online drivers, completion rate, avg earnings. |
+| GET | `/api/reports/earnings` | Admin | Platform revenue. | Returns commission and revenue breakdown. |
+
+## Utility & Info Endpoints
+| Method | Endpoint | Role | Description | Notes |
+|--------|----------|------|-------------|-------|
+| GET | `/api/location/nearby-drivers` | Rider | Find nearby available drivers. | Optional. Uses coordinates for geo-search. Returns list of drivers. |
+| GET | `/api/fare/estimate` | Rider | Estimate ride fare. | Requires pickup and destination (lat/lng). Returns estimated cost. |
+| GET | `/api/health` | Public | Server health check. | Returns 200 if server is operational. |
+
+## Notes
+- **Authentication**: All protected routes use `authenticateJWT` middleware. JWT includes `userId`, `role`, and `status`. Returns 401 for invalid tokens and 403 for unauthorized roles.
+- **Role-Based Access**:
+  - Rider: Access to ride request, cancellation, history, current ride, profile, and utility endpoints.
+  - Driver: Access to ride acceptance/rejection, status updates, availability, earnings, and profile.
+  - Admin: Access to all endpoints, including management and analytics.
+- **Ride Lifecycle**: Statuses: `requested` → `accepted` → `picked_up` → `in_transit` → `completed`. Timestamps logged for each change.
+- **Validations**:
+  - Only one active ride per driver/rider (400 if violated).
+  - Suspended drivers cannot go online or accept rides (403).
+  - Riders cannot cancel accepted rides (403).
+  - Admin-only actions require `authorizeRole(['admin'])` middleware.
+- **Data Storage**:
+  - Locations stored as lat/lng for geo-search compatibility.
+  - Ride history includes full details (pickup, destination, driver, rider, timestamps, status).
+- **Edge Cases**:
+  - No drivers available: `/api/rides/request` returns 503.
+  - Invalid status transitions: Returns 403.
+  - Non-existent resources: Returns 404.
+- **Status Codes**:
+  - 200: Successful GET/PATCH.
+  - 201: Successful POST (e.g., ride request).
+  - 400: Invalid request or business rule violation.
+  - 401: Invalid/missing JWT.
+  - 403: Unauthorized role or action.
+  - 404: Resource not found.
+  - 503: Service unavailable (e.g., no drivers).
+
+
 ## Contributing
 Contributions are welcome! To contribute:
 1. Fork the repository.
