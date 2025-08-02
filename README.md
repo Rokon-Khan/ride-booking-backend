@@ -57,7 +57,7 @@ To run the project locally, follow these steps:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/ride-booking-system.git
+   git clone https://github.com/Rokon-Khan/ride-booking-backend.git
    cd ride-booking-system
    ```
 
