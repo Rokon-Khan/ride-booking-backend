@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Ride } from "../ride/ride.model";
+import { Ride } from "../rider/ride.model";
 import { Driver } from "./driver.model";
 // import { User } from "../user/user.model";
 
