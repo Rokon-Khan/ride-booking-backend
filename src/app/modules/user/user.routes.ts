@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ROLES } from "../../config/constants";
-import { authenticateJWT } from "../../middlwares/authenticateJWT";
-import { authorizeRole } from "../../middlwares/authorizeRole";
+import { authenticateJWT } from "../../middlewares/authenticateJWT";
+import { authorizeRole } from "../../middlewares/authorizeRole";
 import { blockUser, listUsers, unblockUser, viewUser } from "./user.controller";
 
 export const userRouter = Router();
