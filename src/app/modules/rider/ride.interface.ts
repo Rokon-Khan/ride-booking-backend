@@ -1,9 +1,9 @@
-import { DriverDocument } from "../driver/driver.interface";
-import { UserDocument } from "../user/user.interface";
+import { IDriver } from "../driver/driver.interface";
+import { IUser } from "../user/user.interface";
 
 export interface RideDocument extends Document {
-  rider: UserDocument["_id"];
-  driver?: DriverDocument["_id"];
+  rider: IUser["_id"];
+  driver?: IDriver["_id"];
   pickup: { lat: number; lng: number; address?: string };
   destination: { lat: number; lng: number; address?: string };
   status: string;

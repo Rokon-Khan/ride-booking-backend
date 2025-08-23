@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { ROLES } from "../../config/constants";
-import { authenticateJWT } from "../../middlewares/authenticateJWT";
-import { authorizeRole } from "../../middlewares/authorizeRole";
+import { authenticateAccess } from "../../middlewares/auth.middleware";
+// import { authorizeRole } from "../../middlewares/authorizeRole";
+import { authorizeRole } from "../../middlewares/role.middleware";
 import { blockUser, listUsers, unblockUser, viewUser } from "./user.controller";
 
 export const userRouter = Router();
@@ -10,13 +11,18 @@ export const userRouter = Router();
  * GET /api/users
  * List all users (admin)
  */
-userRouter.get("/", authenticateJWT, authorizeRole([ROLES.ADMIN]), listUsers);
+userRouter.get("/", authenticateAccess, authorizeRole(ROLES.ADMIN), listUsers);
 
 /**
  * GET /api/users/:id
  * View user details (admin)
  */
-userRouter.get("/:id", authenticateJWT, authorizeRole([ROLES.ADMIN]), viewUser);
+userRouter.get(
+  "/:id",
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
+  viewUser
+);
 
 /**
  * PATCH /api/users/:id/block
@@ -24,8 +30,8 @@ userRouter.get("/:id", authenticateJWT, authorizeRole([ROLES.ADMIN]), viewUser);
  */
 userRouter.patch(
   "/:id/block",
-  authenticateJWT,
-  authorizeRole([ROLES.ADMIN]),
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
   blockUser
 );
 
@@ -35,7 +41,7 @@ userRouter.patch(
  */
 userRouter.patch(
   "/:id/unblock",
-  authenticateJWT,
-  authorizeRole([ROLES.ADMIN]),
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
   unblockUser
 );

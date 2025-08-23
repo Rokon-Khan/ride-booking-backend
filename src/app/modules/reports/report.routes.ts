@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { ROLES } from "../../config/constants";
-import { authenticateJWT } from "../../middlewares/authenticateJWT";
-import { authorizeRole } from "../../middlewares/authorizeRole";
+// import { authenticateJWT } from "../../middlewares/authenticateJWT";
+// import { authorizeRole } from "../../middlewares/authorizeRole";
+import { authenticateAccess } from "../../middlewares/auth.middleware";
+import { authorizeRole } from "../../middlewares/role.middleware";
 import {
   driverStats,
   earningsStats,
@@ -13,28 +15,28 @@ export const reportsRouter = Router();
 
 reportsRouter.get(
   "/rides",
-  authenticateJWT,
-  authorizeRole([ROLES.ADMIN]),
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
   rideStats
 );
 
 reportsRouter.get(
   "/users",
-  authenticateJWT,
-  authorizeRole([ROLES.ADMIN]),
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
   userStats
 );
 
 reportsRouter.get(
   "/drivers",
-  authenticateJWT,
-  authorizeRole([ROLES.ADMIN]),
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
   driverStats
 );
 
 reportsRouter.get(
   "/earnings",
-  authenticateJWT,
-  authorizeRole([ROLES.ADMIN]),
+  authenticateAccess,
+  authorizeRole(ROLES.ADMIN),
   earningsStats
 );

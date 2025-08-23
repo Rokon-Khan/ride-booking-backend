@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { ROLES } from "../../config/constants";
-import { authenticateJWT } from "../../middlewares/authenticateJWT";
-import { authorizeRole } from "../../middlewares/authorizeRole";
+// import { authenticateJWT } from "../../middlewares/authenticateJWT";
+// import { authorizeRole } from "../../middlewares/authorizeRole";
+import { authenticateAccess } from "../../middlewares/auth.middleware";
+import { authorizeRole } from "../../middlewares/role.middleware";
 import { fareEstimate } from "./fare.controller";
 
 export const fareRouter = Router();
@@ -12,8 +14,8 @@ export const fareRouter = Router();
  */
 fareRouter.get(
   "/estimate",
-  authenticateJWT,
-  authorizeRole([ROLES.RIDER]),
+  authenticateAccess,
+  authorizeRole(ROLES.RIDER),
   fareEstimate
 );
 /**
@@ -22,7 +24,7 @@ fareRouter.get(
  */
 fareRouter.get(
   "/estimate/:rideId",
-  authenticateJWT,
-  authorizeRole([ROLES.RIDER]),
+  authenticateAccess,
+  authorizeRole(ROLES.RIDER),
   fareEstimate
 );
