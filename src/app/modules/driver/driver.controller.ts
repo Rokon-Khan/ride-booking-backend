@@ -4,8 +4,12 @@ import { Driver } from "./driver.model";
 // import { User } from "../user/user.model";
 
 export const listDrivers = async (req: Request, res: Response) => {
-  const drivers = await Driver.find({}).populate("user ");
-  res.json(drivers);
+  const drivers = await Driver.find({});
+  res.json({
+    success: true,
+    message: "Drivers retrieved successfully",
+    data: drivers,
+  });
 };
 
 export const approveDriver = async (req: Request, res: Response) => {

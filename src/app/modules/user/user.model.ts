@@ -1,8 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import { ROLES } from "../../config/constants";
-import { UserDocument } from "./user.interface";
+import { IUser } from "./user.interface";
 
-const UserSchema = new Schema<UserDocument>({
+const UserSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, required: true, enum: Object.values(ROLES) },
@@ -13,6 +13,6 @@ const UserSchema = new Schema<UserDocument>({
   },
 });
 
-export const User = mongoose.model<UserDocument>("User", UserSchema);
+export const User = mongoose.model<IUser>("User", UserSchema);
 
-export { UserDocument };
+export { IUser };

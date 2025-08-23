@@ -4,7 +4,11 @@ import { User } from "./user.model";
 export const listUsers = async (req: Request, res: Response) => {
   // Add filters, pagination as needed
   const users = await User.find({});
-  res.json(users);
+  res.json({
+    success: true,
+    message: "Users retrieved successfully",
+    data: users,
+  });
 };
 
 export const viewUser = async (req: Request, res: Response) => {

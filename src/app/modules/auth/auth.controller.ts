@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { ROLES } from "../../config/constants";
+import { Driver } from "../driver/driver.model";
 import { User } from "../user/user.model";
 
 export const register = async (req: Request, res: Response) => {
@@ -17,13 +18,25 @@ export const register = async (req: Request, res: Response) => {
       role,
       profile,
     });
+
+    if (role === "driver") {
+      const exists = await Driver.findOne({ user: user._id });
+      if (!exists) {
+        await Driver.create({
+          user: user._id,
+          approved: false,
+          suspended: false,
+          available: false,
+        });
+      }
+    }
     // JWT generation
     const token = jwt.sign(
       { userId: user._id, role: user.role, status: user.status },
       process.env.JWT_SECRET!,
       { expiresIn: "2h" }
     );
-    res.status(201).json({ token });
+    res.status(201).json({ message: "User registered successfully", token });
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }
@@ -41,7 +54,7 @@ export const login = async (req: Request, res: Response) => {
       process.env.JWT_SECRET!,
       { expiresIn: "2h" }
     );
-    res.json({ token });
+    res.json({ message: "Login successful", role: user.role, token });
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }

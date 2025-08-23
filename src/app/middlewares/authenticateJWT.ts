@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { UserDocument } from "../modules/user/user.interface";
+import { IUser } from "../modules/user/user.interface";
 
 export interface AuthRequest extends Request {
-  user?: UserDocument;
+  user?: IUser;
 }
 
 export const authenticateJWT = (

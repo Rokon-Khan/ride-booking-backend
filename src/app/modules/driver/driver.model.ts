@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
-import { DriverDocument } from "./driver.interface";
+import { IDriver } from "./driver.interface";
 
-const DriverSchema = new Schema<DriverDocument>({
+const DriverSchema = new Schema<IDriver>({
   user: { type: Schema.Types.ObjectId, ref: "User", required: true },
   approved: { type: Boolean, default: false },
   suspended: { type: Boolean, default: false },
@@ -13,4 +13,4 @@ const DriverSchema = new Schema<DriverDocument>({
   earnings: { type: Number, default: 0 },
 });
 
-export const Driver = mongoose.model<DriverDocument>("Driver", DriverSchema);
+export const Driver = mongoose.model<IDriver>("Driver", DriverSchema);

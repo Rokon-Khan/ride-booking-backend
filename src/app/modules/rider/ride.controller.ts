@@ -73,11 +73,9 @@ export const cancelRide = async (req: any, res: Response) => {
       return res.status(403).json({ message: "Unauthorized." });
 
     if (ride.status !== "requested") {
-      return res
-        .status(403)
-        .json({
-          message: "Ride cannot be canceled after driver has accepted.",
-        });
+      return res.status(403).json({
+        message: "Ride cannot be canceled after driver has accepted.",
+      });
     }
     ride.status = "canceled";
     ride.timestamps.canceled = new Date();
@@ -235,20 +233,38 @@ export const rejectRide = async (req: any, res: Response) => {
 
 export const updateRideStatus = async (req: any, res: Response) => {
   try {
+    // const { userId, role } = req.user;
+    // const { id } = req.params;
+    // const { status } = req.body;
+    // const ride = await Ride.findById(id);
+    // if (!ride) return res.status(404).json({ message: "Ride not found." });
+
+    // // Only driver assigned to this ride or admin can update
+    // if (
+    //   role !== ROLES.ADMIN &&
+    //   (!ride.driver || String(ride.driver) !== String(userId))
+    // ) {
+    //   return res.status(403).json({ message: "Unauthorized." });
+    // }
+
     const { userId, role } = req.user;
     const { id } = req.params;
     const { status } = req.body;
     const ride = await Ride.findById(id);
     if (!ride) return res.status(404).json({ message: "Ride not found." });
 
-    // Only driver assigned to this ride or admin can update
-    if (
-      role !== ROLES.ADMIN &&
-      (!ride.driver || String(ride.driver) !== String(userId))
-    ) {
+    if (role === ROLES.DRIVER) {
+      const driver = await Driver.findOne({ user: userId });
+      if (
+        !driver ||
+        !ride.driver ||
+        String(ride.driver) !== String(driver._id)
+      ) {
+        return res.status(403).json({ message: "Unauthorized." });
+      }
+    } else if (role !== ROLES.ADMIN) {
       return res.status(403).json({ message: "Unauthorized." });
     }
-
     // Allowed transitions
     const allowedTransitions: Record<string, string[]> = {
       accepted: ["picked_up"],

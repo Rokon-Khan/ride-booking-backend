@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export interface DriverDocument extends Document {
+export interface IDriver extends Document {
   _id: string;
   user: Types.ObjectId;
   approved: boolean;
