@@ -1,4 +1,6 @@
+import cors from "cors";
 import express, { Request, Response } from "express";
+import morgan from "morgan";
 
 const app = express();
 
@@ -12,6 +14,17 @@ import { rideRouter } from "./app/modules/rider/ride.routes";
 import { userRouter } from "./app/modules/user/user.routes";
 
 app.use(express.json());
+
+// CORS Options
+
+const corsOptions = {
+  origin: ["http://localhost:5173", ""],
+  credentials: true, // Allows credentials like cookies to be sent
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.use(morgan("dev"));
 
 // Routes
 app.use("/api/auth", authRouter);
