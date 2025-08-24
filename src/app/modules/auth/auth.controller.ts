@@ -5,6 +5,7 @@ import {
   sendPasswordResetOTP,
 } from "../../utils/email.service";
 import { generateOTP } from "../../utils/generate.otp";
+import { setAuthCookie } from "../../utils/setAuthCookie";
 import {
   loginSchema,
   otpSchema,
@@ -12,10 +13,9 @@ import {
   resendOtpSchema,
   resetPasswordSchema,
 } from "../../utils/validators";
+import { Driver } from "../driver/driver.model";
 import { storeOTP, verifyOTP } from "../otp/otp.service";
 import { User } from "../user/user.model";
-
-import { Driver } from "../driver/driver.model";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -27,7 +27,6 @@ import {
 export class AuthController {
   static async register(req: Request, res: Response) {
     const parsed = registerSchema.parse(req.body);
-    // Safety: ensure no 'admin'
     if ((parsed.role as string) === "admin") {
       return res.status(400).json({ error: "Cannot self-register as admin" });
     }
@@ -44,7 +43,6 @@ export class AuthController {
       },
     });
 
-    //  create Driver collection if role is driver
     if (user.role === "driver") {
       const exists = await Driver.findOne({ user: user._id });
       if (!exists) {
@@ -78,20 +76,24 @@ export class AuthController {
   static async login(req: Request, res: Response) {
     const { email, password } = loginSchema.parse(req.body);
     const user = await validatePassword(email, password);
-    if (!user.isEmailVerified)
+    if (!user.isEmailVerified) {
       return res.status(403).json({ error: "Email is not verified" });
+    }
 
-    // Show accessToken, refreshToken, and role in the response
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
+
+    // ⬇️ Set tokens in cookies
+    setAuthCookie(res, { accessToken, refreshToken });
+
     res.json({
+      message: "Login successful",
       accessToken,
       refreshToken,
       role: user.role,
     });
   }
 
-  // (Other existing methods unchanged)
   static async resendOtp(req: Request, res: Response) {
     const { email } = resendOtpSchema.parse(req.body);
     const otp = generateOTP();
@@ -106,18 +108,28 @@ export class AuthController {
   }
 
   static async refreshToken(req: Request, res: Response) {
-    const token = req.body.refreshToken || req.headers["x-refresh-token"];
+    const token =
+      req.cookies.refreshToken ||
+      req.body.refreshToken ||
+      req.headers["x-refresh-token"];
     if (!token) return res.status(401).json({ error: "Missing refresh token" });
+
     const jwt = await import("jsonwebtoken");
     try {
       const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as any;
       if (payload.type !== "refresh") throw new Error("Invalid");
+
       const user = await User.findById(payload.sub);
       if (!user || user.tokenVersion !== payload.tokenVersion) {
         return res.status(401).json({ error: "Invalid refresh token" });
       }
+
       const newRefresh = await rotateRefreshToken(user._id.toString());
       const access = generateAccessToken(user);
+
+      // ⬇️ update cookies
+      setAuthCookie(res, { accessToken: access, refreshToken: newRefresh });
+
       res.json({ accessToken: access, refreshToken: newRefresh });
     } catch {
       res.status(401).json({ error: "Invalid or expired token" });
@@ -152,6 +164,18 @@ export class AuthController {
   }
 
   static async logout(_req: Request, res: Response) {
+    // ⬇️ Clear cookies
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
     res.json({ message: "Logged out" });
   }
 }

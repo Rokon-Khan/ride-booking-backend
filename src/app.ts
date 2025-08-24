@@ -1,3 +1,4 @@
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Request, Response } from "express";
 import morgan from "morgan";
@@ -24,6 +25,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(morgan("dev"));
 
 // Routes
