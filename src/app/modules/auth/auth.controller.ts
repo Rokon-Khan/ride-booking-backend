@@ -51,6 +51,10 @@ export class AuthController {
           approved: false,
           suspended: false,
           available: false,
+          vehicle: {
+            mode: "unavailable",
+            licensePlate: "unavailable",
+          },
         });
       }
     }
@@ -167,12 +171,12 @@ export class AuthController {
     // ⬇️ Clear cookies
     res.clearCookie("accessToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
     });
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
     });
 
