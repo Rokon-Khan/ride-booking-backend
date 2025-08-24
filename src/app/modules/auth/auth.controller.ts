@@ -178,4 +178,13 @@ export class AuthController {
 
     res.json({ message: "Logged out" });
   }
+
+  static me = async (req: any, res: Response) => {
+    try {
+      const user = await User.findById(req.user.userId);
+      res.json(user);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  };
 }

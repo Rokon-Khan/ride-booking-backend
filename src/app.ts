@@ -19,7 +19,7 @@ app.use(express.json());
 // CORS Options
 
 const corsOptions = {
-  origin: ["http://localhost:5173", ""],
+  origin: ["http://localhost:5173", "https://ride-sharing-pro.surge.sh"],
   credentials: true, // Allows credentials like cookies to be sent
   optionsSuccessStatus: 200,
 };
