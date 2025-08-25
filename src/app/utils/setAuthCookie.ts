@@ -10,8 +10,8 @@ export const setAuthCookie = (res: Response, tokens: Tokens) => {
   res.cookie("accessToken", tokens.accessToken, {
     httpOnly: true, // prevent JS access
     secure: true, // HTTPS only
-    sameSite: "none", // protect against CSRF
-    path: "/", // cookie path
+    sameSite: "none",
+    path: "/",
     maxAge: 2 * 60 * 60 * 1000, // 2 hours
   });
 
