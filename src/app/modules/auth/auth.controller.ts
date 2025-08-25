@@ -77,25 +77,59 @@ export class AuthController {
     res.json({ message: "Email has been verified" });
   }
 
+  // static async login(req: Request, res: Response) {
+  //   const { email, password } = loginSchema.parse(req.body);
+  //   const user = await validatePassword(email, password);
+  //   if (!user.isEmailVerified) {
+  //     return res.status(403).json({ error: "Email is not verified" });
+  //   }
+
+  //   const accessToken = generateAccessToken(user);
+  //   const refreshToken = generateRefreshToken(user);
+
+  //   // ⬇️ Set tokens in cookies
+  //   setAuthCookie(res, { accessToken, refreshToken });
+
+  //   res.json({
+  //     message: "Login successful",
+  //     accessToken,
+  //     refreshToken,
+  //     role: user.role,
+  //   });
+  // }
+
   static async login(req: Request, res: Response) {
-    const { email, password } = loginSchema.parse(req.body);
-    const user = await validatePassword(email, password);
-    if (!user.isEmailVerified) {
-      return res.status(403).json({ error: "Email is not verified" });
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+
+      const user = await validatePassword(email, password); // will throw if invalid
+
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ error: "Email is not verified" });
+      }
+      // if (!user.password) {
+      //   return res
+      //     .status(403)
+      //     .json({ error: "Your Password Credentials are Wrong" });
+      // }
+
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
+
+      // ⬇️ Set tokens in cookies
+      setAuthCookie(res, { accessToken, refreshToken });
+
+      return res.json({
+        message: "Login successful",
+        accessToken,
+        refreshToken,
+        role: user.role,
+      });
+    } catch (err: any) {
+      return res
+        .status(401)
+        .json({ error: err.message || "Invalid credentials" });
     }
-
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    // ⬇️ Set tokens in cookies
-    setAuthCookie(res, { accessToken, refreshToken });
-
-    res.json({
-      message: "Login successful",
-      accessToken,
-      refreshToken,
-      role: user.role,
-    });
   }
 
   static async resendOtp(req: Request, res: Response) {
@@ -162,7 +196,7 @@ export class AuthController {
     const hash = await hashPassword(newPassword);
     await User.updateOne(
       { email: email.toLowerCase() },
-      { passwordHash: hash, tokenVersion: Date.now() }
+      { password: hash, tokenVersion: Date.now() }
     );
     res.json({ message: "Password updated" });
   }
