@@ -13,3 +13,4 @@ authRouter.post("/logout", authenticateAccess, AuthController.logout);
 authRouter.post("/forgot-password", AuthController.forgotPassword);
 authRouter.post("/reset-password", AuthController.resetPassword);
 authRouter.get("/me", authenticateAccess, AuthController.me);
+authRouter.patch("/me", authenticateAccess, AuthController.updateMe);

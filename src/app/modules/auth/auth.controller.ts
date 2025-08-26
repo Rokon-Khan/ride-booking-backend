@@ -190,10 +190,55 @@ export class AuthController {
     res.json({ message: "Logged out" });
   }
 
+  //get current user details
   static me = async (req: any, res: Response) => {
     try {
       const user = await User.findById(req.user.userId);
       res.json(user);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  };
+
+  /**
+   * PATCH /api/auth/me
+   * Update current user's profile (name, phone, avatarUrl, address)
+   */
+  static updateMe = async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.userId; // req.user should come from auth middleware
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ message: "Unauthorized - no userId found" });
+      }
+
+      const { name, phone, avatarUrl, address } = req.body;
+
+      // Only allow updating safe profile fields
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            "profile.name": name,
+            "profile.phone": phone,
+            "profile.avatarUrl": avatarUrl,
+            "profile.address": address,
+          },
+        },
+        { new: true, runValidators: true }
+      ).select("-email -password -refreshTokens -tokenVersion -status"); // Exclude sensitive fields
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        success: true,
+        message: "Profile updated successfully",
+        data: updatedUser,
+      });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
     }
