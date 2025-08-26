@@ -5,7 +5,6 @@ import {
   sendPasswordResetOTP,
 } from "../../utils/email.service";
 import { generateOTP } from "../../utils/generate.otp";
-import { setAuthCookie } from "../../utils/setAuthCookie";
 import {
   loginSchema,
   otpSchema,
@@ -52,7 +51,7 @@ export class AuthController {
           suspended: false,
           available: false,
           vehicle: {
-            mode: "unavailable",
+            model: "unavailable",
             licensePlate: "unavailable",
           },
         });
@@ -91,7 +90,7 @@ export class AuthController {
       const refreshToken = generateRefreshToken(user);
 
       // ⬇️ Set tokens in cookies
-      setAuthCookie(res, { accessToken, refreshToken });
+      // setAuthCookie(res, { accessToken, refreshToken });
 
       return res.json({
         message: "Login successful",
@@ -140,7 +139,7 @@ export class AuthController {
       const access = generateAccessToken(user);
 
       // ⬇️ update cookies
-      setAuthCookie(res, { accessToken: access, refreshToken: newRefresh });
+      // setAuthCookie(res, { accessToken: access, refreshToken: newRefresh });
 
       res.json({ accessToken: access, refreshToken: newRefresh });
     } catch {

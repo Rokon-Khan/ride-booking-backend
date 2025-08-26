@@ -99,10 +99,12 @@ import {
   approveDriver,
   availableRides,
   earningsHistory,
+  getVehicleDetails,
   listDrivers,
   reactivateDriver,
   setAvailability,
   suspendDriver,
+  updateVehicleDetails,
 } from "./driver.controller";
 
 export const driverRouter = Router();
@@ -182,4 +184,20 @@ driverRouter.get(
   authenticateAccess,
   authorizeRole(ROLES.DRIVER),
   availableRides
+);
+
+// ✅ New: Driver updates vehicle details
+driverRouter.patch(
+  "/vehicle",
+  authenticateAccess,
+  authorizeRole(ROLES.DRIVER),
+  updateVehicleDetails
+);
+
+// ✅ New: Driver get vehicle details
+driverRouter.get(
+  "/vehicle",
+  authenticateAccess,
+  authorizeRole(ROLES.DRIVER),
+  getVehicleDetails
 );

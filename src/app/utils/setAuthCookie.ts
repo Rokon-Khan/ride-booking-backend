@@ -11,7 +11,6 @@ export const setAuthCookie = (res: Response, tokens: Tokens) => {
     httpOnly: true, // prevent JS access
     secure: true, // HTTPS only
     sameSite: "none",
-    path: "/",
     maxAge: 2 * 60 * 60 * 1000, // 2 hours
   });
 
@@ -20,7 +19,6 @@ export const setAuthCookie = (res: Response, tokens: Tokens) => {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };

@@ -12,4 +12,4 @@ authRouter.post("/refresh-token", AuthController.refreshToken);
 authRouter.post("/logout", authenticateAccess, AuthController.logout);
 authRouter.post("/forgot-password", AuthController.forgotPassword);
 authRouter.post("/reset-password", AuthController.resetPassword);
-authRouter.post("/me", AuthController.me);
+authRouter.get("/me", authenticateAccess, AuthController.me);

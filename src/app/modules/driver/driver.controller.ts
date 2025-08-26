@@ -69,3 +69,51 @@ export const availableRides = async (req: any, res: Response) => {
   const rides = await Ride.find({ status: "requested", driver: null });
   res.json(rides);
 };
+
+// ✅ New: Update vehicle details (driver only)
+export const updateVehicleDetails = async (req: any, res: Response) => {
+  const { model, licensePlate } = req.body;
+
+  if (!model && !licensePlate) {
+    return res.status(400).json({
+      message: "Please provide vehicle.model or vehicle.licensePlate",
+    });
+  }
+
+  const updateFields: any = {};
+  if (model) updateFields["vehicle.model"] = model;
+  if (licensePlate) updateFields["vehicle.licensePlate"] = licensePlate;
+
+  const driver = await Driver.findOneAndUpdate(
+    { user: req.user.userId }, // only update the authenticated driver's info
+    { $set: updateFields },
+    { new: true }
+  );
+
+  if (!driver) {
+    return res.status(404).json({ message: "Driver not found" });
+  }
+
+  res.json({
+    success: true,
+    message: "Vehicle details updated successfully",
+    driver,
+  });
+};
+
+// ✅ Get vehicle details (driver only)
+export const getVehicleDetails = async (req: any, res: Response) => {
+  const driver = await Driver.findOne({ user: req.user.userId }).select(
+    "vehicle"
+  );
+
+  if (!driver) {
+    return res.status(404).json({ message: "Driver not found" });
+  }
+
+  res.json({
+    success: true,
+    message: "Vehicle details retrieved successfully",
+    vehicle: driver.vehicle,
+  });
+};
