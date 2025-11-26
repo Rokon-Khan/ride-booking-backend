@@ -15,6 +15,7 @@ import {
   rejectRide,
   requestRide,
   rideHistory,
+  rideHistoryDetail,
   updateRideStatus,
   viewRide,
 } from "./ride.controller";
@@ -37,19 +38,26 @@ rideRouter.patch(
 rideRouter.get(
   "/history",
   authenticateAccess,
-  authorizeRole(ROLES.RIDER),
+  authorizeRole(ROLES.RIDER, ROLES.DRIVER),
   rideHistory
+);
+
+rideRouter.get(
+  "/history/:rideId",
+  authenticateAccess,
+  authorizeRole(ROLES.RIDER, ROLES.DRIVER, ROLES.ADMIN),
+  rideHistoryDetail
 );
 rideRouter.get(
   "/current",
   authenticateAccess,
-  authorizeRole(ROLES.RIDER),
+  authorizeRole(ROLES.RIDER, ROLES.DRIVER),
   currentRide
 );
 rideRouter.get(
   "/:id",
   authenticateAccess,
-  authorizeRole(ROLES.RIDER, ROLES.ADMIN),
+  authorizeRole(ROLES.RIDER, ROLES.DRIVER, ROLES.ADMIN),
   viewRide
 );
 

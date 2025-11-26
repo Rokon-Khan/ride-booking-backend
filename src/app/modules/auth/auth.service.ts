@@ -61,6 +61,7 @@ export function generateAccessToken(user: any) {
     {
       sub: user._id.toString(),
       role: user.role,
+      status: user.status,
       type: "access",
       tokenVersion: user.tokenVersion,
     },

@@ -6,16 +6,16 @@ const RideSchema = new Schema({
   driver: { type: Schema.Types.ObjectId, ref: "Driver" },
   pickup: {
     type: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
+      lat: { type: Number },
+      lng: { type: Number },
       address: { type: String, required: true },
     },
     required: true, // Makes the entire pickup object required
   },
   destination: {
     type: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
+      lat: { type: Number },
+      lng: { type: Number },
       address: { type: String, required: true },
     },
     required: true, // Makes the entire destination object required

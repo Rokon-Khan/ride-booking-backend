@@ -1,12 +1,13 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import type { Server } from "http";
+import { createServer } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import { connectRedis, disconnectRedis } from "./app/config/redis";
+import { initializeSocket } from "./app/config/socket";
 
-let server: Server | null = null;
+let server: ReturnType<typeof createServer> | null = null;
 let shuttingDown = false;
 
 async function startServer() {
@@ -23,7 +24,10 @@ async function startServer() {
     await connectRedis();
 
     const port = Number(process.env.PORT) || 5000;
-    server = app.listen(port, () => {
+    server = createServer(app);
+    initializeSocket(server);
+    
+    server.listen(port, () => {
       console.log(`Server is listening to port ${port}`);
     });
 

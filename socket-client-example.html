@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test Client</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Test Client</h1>
+    <div>
+        <input type="text" id="token" placeholder="JWT Token" style="width: 400px;">
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    <div id="status">Disconnected</div>
+    <div id="messages"></div>
+
+    <script>
+        let socket;
+
+        function connect() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                alert('Please enter JWT token');
+                return;
+            }
+
+            socket = io('http://localhost:5000', {
+                auth: { token }
+            });
+
+            socket.on('connect', () => {
+                document.getElementById('status').innerHTML = 'Connected';
+                addMessage('Connected to server');
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('status').innerHTML = 'Disconnected';
+                addMessage('Disconnected from server');
+            });
+
+            // Listen for SOS alerts (admin)
+            socket.on('sos_alert', (data) => {
+                addMessage('🚨 SOS ALERT: ' + JSON.stringify(data));
+            });
+
+            // Listen for ride updates (rider)
+            socket.on('ride_accepted', (data) => {
+                addMessage('✅ Ride Accepted: ' + JSON.stringify(data));
+            });
+
+            socket.on('ride_status_updated', (data) => {
+                addMessage('📍 Status Update: ' + JSON.stringify(data));
+            });
+
+            // Listen for new ride requests (driver)
+            socket.on('new_ride_request', (data) => {
+                addMessage('🚗 New Ride Request: ' + JSON.stringify(data));
+            });
+
+            socket.on('ride_taken', (data) => {
+                addMessage('❌ Ride Taken: ' + JSON.stringify(data));
+            });
+
+            socket.on('test_notification', (data) => {
+                addMessage('🔔 Test: ' + JSON.stringify(data));
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+
+        function addMessage(message) {
+            const div = document.createElement('div');
+            div.innerHTML = new Date().toLocaleTimeString() + ': ' + message;
+            document.getElementById('messages').appendChild(div);
+        }
+    </script>
+</body>
+</html>

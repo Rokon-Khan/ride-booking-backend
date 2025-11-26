@@ -3,6 +3,7 @@ import { hashPassword } from "../../config/hash.password";
 import {
   sendEmailVerification,
   sendPasswordResetOTP,
+  sendSOSAlert,
 } from "../../utils/email.service";
 import { generateOTP } from "../../utils/generate.otp";
 import {
@@ -11,9 +12,12 @@ import {
   registerSchema,
   resendOtpSchema,
   resetPasswordSchema,
+  troubleSchema,
 } from "../../utils/validators";
 import { Driver } from "../driver/driver.model";
 import { storeOTP, verifyOTP } from "../otp/otp.service";
+import { Ride } from "../rider/ride.model";
+import { SocketService } from "../socket/socket.service";
 import { User } from "../user/user.model";
 import {
   generateAccessToken,
@@ -22,6 +26,8 @@ import {
   rotateRefreshToken,
   validatePassword,
 } from "./auth.service";
+import { Notification } from "./notification.model";
+import { SOS } from "./sos.model";
 
 export class AuthController {
   static async register(req: Request, res: Response) {
@@ -97,6 +103,7 @@ export class AuthController {
         accessToken,
         refreshToken,
         role: user.role,
+        status: user.status,
       });
     } catch (err: any) {
       return res
@@ -194,6 +201,14 @@ export class AuthController {
   static me = async (req: any, res: Response) => {
     try {
       const user = await User.findById(req.user.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (user?.status === "blocked" || user?.isEmailVerified === false) {
+        return res.status(403).json({
+          message: "Your account has been blocked or not verified.",
+        });
+      }
       res.json(user);
     } catch (err: any) {
       res.status(400).json({ message: err.message });
@@ -241,6 +256,127 @@ export class AuthController {
       });
     } catch (err: any) {
       res.status(400).json({ message: err.message });
+    }
+  };
+
+  static trouble = async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (userRole !== "rider" && userRole !== "driver") {
+        return res
+          .status(403)
+          .json({ message: "Only riders and drivers can send SOS alerts" });
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Find user's current active ride
+      let activeRide;
+      if (userRole === "rider") {
+        activeRide = await Ride.findOne({
+          rider: userId,
+          status: { $in: ["accepted", "picked_up", "in_transit"] },
+        });
+      } else if (userRole === "driver") {
+        const driver = await Driver.findOne({ user: userId });
+        if (driver) {
+          activeRide = await Ride.findOne({
+            driver: driver._id,
+            status: { $in: ["accepted", "picked_up", "in_transit"] },
+          });
+        }
+      }
+
+      if (!activeRide) {
+        return res.status(400).json({ message: "No active ride found" });
+      }
+
+      // Check if SOS already sent for this ride by this user
+      const existingSOS = await SOS.findOne({
+        [userRole]: userId,
+        ride: activeRide._id,
+      });
+
+      if (existingSOS) {
+        return res
+          .status(400)
+          .json({ message: "SOS alert already sent for this ride" });
+      }
+
+      const { location, message } = troubleSchema.parse(req.body);
+
+      // Create SOS record
+      const sosData: any = {
+        ride: activeRide._id,
+        location,
+        message,
+      };
+      sosData[userRole] = userId;
+      await SOS.create(sosData);
+
+      // Create notification for admin dashboard
+      const notification = await Notification.create({
+        type: "sos",
+        title: "🚨 Emergency SOS Alert",
+        message: `${
+          user.profile.name
+        } (${userRole}) has sent an emergency SOS alert. ${
+          message || "No additional message provided."
+        }`,
+        riderName: user.profile.name,
+        riderEmail: user.email,
+        rideId: activeRide._id,
+        location,
+      });
+
+      // Emit real-time notification to admin
+      SocketService.emitToAdmin("sos_alert", {
+        type: "sos",
+        title: "🚨 Emergency SOS Alert",
+        message: `${user.profile.name} has sent an emergency SOS alert`,
+        riderName: user.profile.name,
+        riderEmail: user.email,
+        rideId: activeRide._id.toString(),
+        location,
+        timestamp: new Date(),
+        _id: notification._id,
+      });
+
+      // Send SOS email to admin
+      await sendSOSAlert(
+        user.profile.name,
+        user.email,
+        activeRide._id.toString(),
+        location,
+        message
+      );
+
+      res.json({
+        success: true,
+        message: "Emergency SOS alert sent successfully",
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  };
+
+  static getNotifications = async (req: any, res: Response) => {
+    try {
+      const notifications = await Notification.find()
+        .sort({ timestamp: -1 })
+        .limit(50);
+
+      res.json({
+        success: true,
+        data: notifications,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   };
 }

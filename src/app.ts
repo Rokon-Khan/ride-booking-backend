@@ -12,6 +12,7 @@ import { fareRouter } from "./app/modules/fare/fare.routes";
 import { locationRouter } from "./app/modules/location/location.routes";
 import { reportsRouter } from "./app/modules/reports/report.routes";
 import { rideRouter } from "./app/modules/rider/ride.routes";
+import { socketRouter } from "./app/modules/socket/socket.routes";
 import { userRouter } from "./app/modules/user/user.routes";
 
 app.use(express.json());
@@ -20,9 +21,10 @@ app.use(express.json());
 
 const corsOptions = {
   origin: [
+    "https://ride-sharing-pro.netlify.app",
+    "http://localhost:5173",
     "https://ride-sharing-pro.vercel.app",
     "https://ride-sharing-pro.surge.sh",
-    "http://localhost:5173",
   ],
   credentials: true, // Allows credentials like cookies to be sent
 };
@@ -39,6 +41,7 @@ app.use("/api/rides", rideRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/location", locationRouter);
 app.use("/api/fare", fareRouter);
+app.use("/api/socket", socketRouter);
 
 // Error Handler
 app.use(errorHandler);

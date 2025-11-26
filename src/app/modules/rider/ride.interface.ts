@@ -4,8 +4,8 @@ import { IUser } from "../user/user.interface";
 export interface RideDocument extends Document {
   rider: IUser["_id"];
   driver?: IDriver["_id"];
-  pickup: { lat: number; lng: number; address?: string };
-  destination: { lat: number; lng: number; address?: string };
+  pickup: { lat?: number; lng: number; address: string };
+  destination: { lat?: number; lng: number; address: string };
   status: string;
   timestamps: {
     requested: Date;

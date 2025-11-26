@@ -16,21 +16,21 @@ export const registerSchema = z.object({
 
 // Login Validator
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 });
 
 // Ride Request Validator
 export const rideRequestSchema = z.object({
   pickup: z.object({
-    lat: z.number(),
-    lng: z.number(),
-    address: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    address: z.string().min(3).max(100),
   }),
   destination: z.object({
-    lat: z.number(),
-    lng: z.number(),
-    address: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    address: z.string().min(3).max(100),
   }),
 });
 
@@ -86,6 +86,16 @@ export type RideRequestInput = z.infer<typeof rideRequestSchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type FareEstimateInput = z.infer<typeof fareEstimateSchema>;
 export type RideStatusInput = z.infer<typeof rideStatusSchema>;
+// SOS Trouble Validator
+export const troubleSchema = z.object({
+  location: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
+  message: z.string().max(500).optional(),
+});
+
 export type OTPInput = z.infer<typeof otpSchema>;
 export type ResendOTPInput = z.infer<typeof resendOtpSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type TroubleInput = z.infer<typeof troubleSchema>;

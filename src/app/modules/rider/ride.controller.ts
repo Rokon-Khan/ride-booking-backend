@@ -1,9 +1,10 @@
 import { Response } from "express";
-import { Driver } from "../driver/driver.model";
-import { Ride } from "./ride.model";
-// import { User } from "../user/user.model";
 import mongoose from "mongoose";
 import { RIDE_STATUS, ROLES } from "../../config/constants";
+import { Driver } from "../driver/driver.model";
+import { SocketService } from "../socket/socket.service";
+import { User } from "../user/user.model";
+import { Ride } from "./ride.model";
 
 // Helper: Only one active ride per rider
 const ACTIVE_RIDE_STATUSES = [
@@ -57,6 +58,19 @@ export const requestRide = async (req: any, res: Response) => {
       status: "requested",
       timestamps: { requested: new Date() },
     });
+
+    // Get rider info for notification
+    const rider = await User.findById(userId);
+
+    // Emit to all drivers about new ride request
+    SocketService.emitToRole("driver", "new_ride_request", {
+      rideId: ride._id,
+      riderName: rider?.profile.name,
+      pickup: ride.pickup,
+      destination: ride.destination,
+      timestamp: new Date(),
+    });
+
     res.status(201).json({ rideId: ride._id, status: ride.status });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -86,38 +100,203 @@ export const cancelRide = async (req: any, res: Response) => {
   }
 };
 
+// export const rideHistory = async (req: any, res: Response) => {
+//   try {
+//     const { userId } = req.user;
+//     const rides = await Ride.find({
+//       rider: userId,
+//       status: { $in: ["completed", "canceled"] },
+//     }).sort({ "timestamps.completed": -1 });
+//     res.json({ rides });
+//   } catch (err: any) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// Combined rideHistory for Rider and Driver
+
+// export const rideHistory = async (req: any, res: Response) => {
+//   try {
+//     const { userId, role } = req.user;
+
+//     let rides: any[] = [];
+
+//     if (role === "rider") {
+//       rides = await Ride.find({
+//         rider: userId,
+//         status: { $in: ["completed", "canceled"] },
+//       }).sort({ "timestamps.completed": -1 });
+//     } else if (role === "driver") {
+//       const driver = await Driver.findOne({ user: userId }); // 👈 link to user
+//       if (driver) {
+//         rides = await Ride.find({
+//           driver: driver._id,
+//           status: { $in: ["completed", "canceled"] },
+//         }).sort({ "timestamps.completed": -1 });
+//       }
+//     } else {
+//       return res.status(403).json({ message: "Unauthorized role" });
+//     }
+
+//     res.json({ total: rides.length, rides });
+//   } catch (err: any) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+//rides history
+
 export const rideHistory = async (req: any, res: Response) => {
   try {
-    const { userId } = req.user;
-    const rides = await Ride.find({
-      rider: userId,
-      status: { $in: ["completed", "canceled"] },
-    }).sort({ "timestamps.completed": -1 });
-    res.json({ rides });
+    const { userId, role } = req.user;
+
+    let rides: any[] = [];
+
+    if (role === "rider") {
+      rides = await Ride.find({
+        rider: userId,
+        status: { $in: ["completed", "canceled"] },
+      })
+        .populate({
+          path: "rider",
+          model: "User",
+          select: "email profile.name profile.phone profile.address",
+        })
+        .populate({
+          path: "driver",
+          model: "Driver",
+          populate: {
+            path: "user", // Driver is linked to User
+            model: "User",
+            select: "email profile.name profile.phone profile.address",
+          },
+        })
+        .sort({ "timestamps.completed": -1 });
+    } else if (role === "driver") {
+      const driver = await Driver.findOne({ user: userId });
+      if (driver) {
+        rides = await Ride.find({
+          driver: driver._id,
+          status: { $in: ["completed", "canceled"] },
+        })
+          .populate({
+            path: "rider",
+            model: "User",
+            select: "email profile.name profile.phone profile.address",
+          })
+          .populate({
+            path: "driver",
+            model: "Driver",
+            populate: {
+              path: "user",
+              model: "User",
+              select: "email profile.name profile.phone profile.address",
+            },
+          })
+          .sort({ "timestamps.completed": -1 });
+      }
+    } else {
+      return res.status(403).json({ message: "Unauthorized role" });
+    }
+
+    res.json({ total: rides.length, rides });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 };
 
+// export const rideHistoryDetail = async (req: any, res: Response) => {
+//   try {
+//     const { userId, role } = req.user;
+//     const { id } = req.params;
+//     const ride = await Ride.findById(id)
+//       .populate({
+//         path: "rider",
+//         model: "User",
+//         select: "email profile.name profile.phone profile.address",
+//       })
+//       .populate({
+//         path: "driver",
+//         model: "Driver",
+//         populate: {
+//           path: "user",
+//           model: "User",
+//           select: "email profile.name profile.phone profile.address",
+//         },
+//       });
+//     if (!ride) return res.status(404).json({ message: "Ride not found." });
+//     if (
+//       role === ROLES.ADMIN ||
+//       String(ride.rider) === String(userId) ||
+//       String(ride.driver) === String(userId)
+//     ) {
+//       res.json({ ride });
+//     } else {
+//       res.status(403).json({ message: "Unauthorized" });
+//     }
+//   } catch (err: any) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// export const currentRide = async (req: any, res: Response) => {
+//   try {
+//     const { userId, role } = req.user;
+//     let ride;
+//     if (role === ROLES.RIDER) {
+//       ride = await Ride.findOne({
+//         rider: userId,
+//         status: { $in: ACTIVE_RIDE_STATUSES },
+//       });
+//     } else if (role === ROLES.DRIVER) {
+//       ride = await Ride.findOne({
+//         driver: userId,
+//         status: { $in: ACTIVE_RIDE_STATUSES },
+//       });
+//     }
+//     if (!ride)
+//       return res.status(404).json({ message: "No active ride found." });
+//     res.json({ ride });
+//   } catch (err: any) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// Current Ride
 export const currentRide = async (req: any, res: Response) => {
   try {
     const { userId, role } = req.user;
+    // console.log("User ID:", userId, "Role:", role);
+
     let ride;
+
     if (role === ROLES.RIDER) {
       ride = await Ride.findOne({
-        rider: userId,
+        rider: userId, // riders are stored by userId
         status: { $in: ACTIVE_RIDE_STATUSES },
       });
     } else if (role === ROLES.DRIVER) {
+      // 1. Find driver record by userId
+      const driver = await Driver.findOne({ user: userId });
+      if (!driver) {
+        return res.status(404).json({ message: "Driver profile not found." });
+      }
+
+      // 2. Use driver._id in Ride query
       ride = await Ride.findOne({
-        driver: userId,
+        driver: driver._id,
         status: { $in: ACTIVE_RIDE_STATUSES },
       });
     }
-    if (!ride)
+
+    // console.log("Ride found:", ride);
+    if (!ride) {
       return res.status(404).json({ message: "No active ride found." });
+    }
+
     res.json({ ride });
   } catch (err: any) {
+    console.error("Error in currentRide:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -126,13 +305,64 @@ export const viewRide = async (req: any, res: Response) => {
   try {
     const { userId, role } = req.user;
     const { id } = req.params;
-    const ride = await Ride.findById(id);
+    const ride = await Ride.findById(id)
+      .populate({
+        path: "rider",
+        model: "User",
+        select: "email profile.name profile.phone profile.address",
+      })
+      .populate({
+        path: "driver",
+        model: "Driver",
+        populate: {
+          path: "user",
+          model: "User",
+          select: "email profile.name profile.phone profile.address",
+        },
+      })
+      .lean();
     if (!ride) return res.status(404).json({ message: "Ride not found." });
 
+    //   // Normalize rider id whether populated or not
+    //   const riderId =
+    //     typeof ride.rider === "string" ? ride.rider : (ride.rider as any)?._id;
+    //   // Normalize driver user id (driver may be populated or an id)
+    //   const driverUserId =
+    //     ride.driver && typeof ride.driver === "string"
+    //       ? undefined
+    //       : (ride.driver as any)?.user;
+
+    //   if (
+    //     role === ROLES.ADMIN ||
+    //     String(riderId) === String(userId) ||
+    //     (driverUserId && String(driverUserId) === String(userId))
+    //   ) {
+    //     res.json({ ride });
+    //   } else {
+    //     res.status(403).json({ message: "Unauthorized" });
+    //   }
+    // }
+    if (role === ROLES.ADMIN) {
+      res.json({ ride });
+      return;
+    }
+
+    // Normalize rider id
+    const riderId =
+      typeof ride.rider === "string" ? ride.rider : (ride.rider as any)?._id;
+
+    // Normalize driver id
+    const rideDriverId =
+      ride.driver && typeof ride.driver === "string"
+        ? ride.driver
+        : (ride.driver as any)?._id;
+
+    // Fetch driver for this user
+    const driver = await Driver.findOne({ user: userId });
+
     if (
-      role === ROLES.ADMIN ||
-      String(ride.rider) === String(userId) ||
-      String(ride.driver) === String(userId)
+      String(riderId) === String(userId) ||
+      (driver && String(rideDriverId) === String(driver._id))
     ) {
       res.json({ ride });
     } else {
@@ -191,6 +421,24 @@ export const acceptRide = async (req: any, res: Response) => {
     // Mark driver as unavailable until ride completes
     driver.available = false;
     await driver.save();
+
+    // Get driver and rider info
+    const driverUser = await User.findById(userId);
+    const riderUser = await User.findById(ride.rider);
+
+    // Emit to rider about ride acceptance
+    SocketService.emitToUser(ride.rider.toString(), "ride_accepted", {
+      rideId: ride._id,
+      driverName: driverUser?.profile.name,
+      driverPhone: driverUser?.profile.phone,
+      status: "accepted",
+      timestamp: new Date(),
+    });
+
+    // Emit to all drivers that this ride is no longer available
+    SocketService.emitToRole("driver", "ride_taken", {
+      rideId: ride._id,
+    });
 
     res.json({ message: "Ride accepted.", ride });
   } catch (err: any) {
@@ -294,6 +542,14 @@ export const updateRideStatus = async (req: any, res: Response) => {
     }
 
     await ride.save();
+
+    // Emit status update to rider
+    SocketService.emitToUser(ride.rider.toString(), "ride_status_updated", {
+      rideId: ride._id,
+      status: ride.status,
+      timestamp: new Date(),
+    });
+
     res.json({ message: "Ride status updated.", ride });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -421,6 +677,68 @@ export const adminDeleteRide = async (req: any, res: Response) => {
 
     await Ride.deleteOne({ _id: id });
     res.json({ message: "Ride deleted." });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const rideHistoryDetail = async (req: any, res: Response) => {
+  try {
+    const { userId, role } = req.user;
+    const { rideId } = req.params;
+
+    const ride = await Ride.findById(rideId)
+      .populate({
+        path: "rider",
+        model: "User",
+        select: "email profile.name profile.phone profile.address",
+      })
+      .populate({
+        path: "driver",
+        model: "Driver",
+        populate: {
+          path: "user",
+          model: "User",
+          select: "email profile.name profile.phone profile.address",
+        },
+      });
+
+    if (!ride) {
+      return res.status(404).json({ message: "Ride not found." });
+    }
+
+    // Check authorization
+    let authorized = false;
+    if (role === ROLES.ADMIN) {
+      authorized = true;
+    } else if (role === ROLES.RIDER) {
+      // ride.rider can be a populated object or a plain string id
+      const riderId =
+        typeof ride.rider === "string" ? ride.rider : (ride.rider as any)?._id;
+      if (String(riderId) === String(userId)) {
+        authorized = true;
+      }
+    } else if (role === ROLES.DRIVER) {
+      const driver = await Driver.findOne({ user: userId });
+      // ride.driver can be populated (object) or a plain id — normalize both
+      const rideDriverId =
+        ride.driver && typeof ride.driver === "string"
+          ? ride.driver
+          : (ride.driver as any)?._id;
+      if (
+        driver &&
+        ride.driver &&
+        String(rideDriverId) === String(driver._id)
+      ) {
+        authorized = true;
+      }
+    }
+
+    if (!authorized) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    res.json({ ride });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
